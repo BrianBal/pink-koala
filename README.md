@@ -13,15 +13,15 @@ npm install --save pink-koala
 ## Usage
 
 ```tsx
-import React, { Component } from 'react'
+import React, { Component } from "react"
 
-import MyComponent from 'pink-koala'
-import 'pink-koala/dist/index.css'
+import MyComponent from "pink-koala"
+import "pink-koala/dist/index.css"
 
 class Example extends Component {
-  render() {
-    return <MyComponent />
-  }
+    render() {
+        return <MyComponent />
+    }
 }
 ```
 
