@@ -1,0 +1,1 @@
+export { paint } from "./paint";
