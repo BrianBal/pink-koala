@@ -1456,6 +1456,13 @@
     "@jridgewell/resolve-uri" "^3.0.3"
     "@jridgewell/sourcemap-codec" "^1.4.10"
 
+"@livelybone/request-idle-callback@^1.1.0":
+  version "1.1.0"
+  resolved "https://registry.yarnpkg.com/@livelybone/request-idle-callback/-/request-idle-callback-1.1.0.tgz#4b73fde11a0683c9c069952df16e8e010c26ad03"
+  integrity sha512-176U7cvCiu5y2Fi3SdPlv4H3WjToQMI1yRlIL6fbUyW/1FYLxFkU6QnnlZWXj01MMdOVMK7VSjmkE87yi/1Jag==
+  dependencies:
+    frame-duration "^1.1.0"
+
 "@mrmlnc/readdir-enhanced@^2.2.1":
   version "2.2.1"
   resolved "https://registry.yarnpkg.com/@mrmlnc/readdir-enhanced/-/readdir-enhanced-2.2.1.tgz#524af240d1a360527b730475ecfa1344aa540dde"
@@ -5666,6 +5673,11 @@ fragment-cache@^0.2.1:
   integrity sha1-QpD60n8T6Jvn8zeZxrxaCr//DRk=
   dependencies:
     map-cache "^0.2.2"
+
+frame-duration@^1.1.0:
+  version "1.1.0"
+  resolved "https://registry.yarnpkg.com/frame-duration/-/frame-duration-1.1.0.tgz#71ccbc9ae18b28c90e6a15b3747128fd85b7acb3"
+  integrity sha512-szWMbiL56pAnbRvmsuUFYp1otMdrS+S9escuQVCnKoXk5ya5ZlVcM3SScq11uimnsIa0fDBV2XsCNnV7Skf6RQ==
 
 fresh@0.5.2:
   version "0.5.2"

@@ -78,7 +78,18 @@ export class StateManager {
 
     public start() {
         if (!this.isRunning) {
-            this.stepCallbackId = requestIdleCallback(this.step)
+            if (window.requestIdleCallback != null) {
+                this.stepCallbackId = requestIdleCallback(this.step)
+            } else {
+                setTimeout(() => {
+                    this.step({
+                        timeRemaining: () => {
+                            return 16
+                        },
+                        didTimeout: false
+                    })
+                }, 10)
+            }
             this.isRunning = true
         }
     }
@@ -122,7 +133,18 @@ export class StateManager {
             this.stepCallbackId = null
         }
         if ((this.isRunning && this.AUTO_LOOP) || this.unitsOfWork.length > 0) {
-            this.stepCallbackId = requestIdleCallback(this.step)
+            if (window.requestIdleCallback != null) {
+                this.stepCallbackId = requestIdleCallback(this.step)
+            } else {
+                setTimeout(() => {
+                    this.step({
+                        timeRemaining: () => {
+                            return 16
+                        },
+                        didTimeout: false
+                    })
+                }, 10)
+            }
         }
 
         let diff = performance.now() - start

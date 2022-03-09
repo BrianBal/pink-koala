@@ -982,8 +982,22 @@ var StateManager = /*#__PURE__*/function () {
   };
 
   _proto.start = function start() {
+    var _this2 = this;
+
     if (!this.isRunning) {
-      this.stepCallbackId = requestIdleCallback(this.step);
+      if (window.requestIdleCallback != null) {
+        this.stepCallbackId = requestIdleCallback(this.step);
+      } else {
+        setTimeout(function () {
+          _this2.step({
+            timeRemaining: function timeRemaining() {
+              return 16;
+            },
+            didTimeout: false
+          });
+        }, 10);
+      }
+
       this.isRunning = true;
     }
   };
@@ -998,6 +1012,8 @@ var StateManager = /*#__PURE__*/function () {
   };
 
   _proto.step = function step(deadline) {
+    var _this3 = this;
+
     var start = performance.now();
 
     if (this.currentRoot) {
@@ -1028,7 +1044,18 @@ var StateManager = /*#__PURE__*/function () {
     }
 
     if (this.isRunning && this.AUTO_LOOP || this.unitsOfWork.length > 0) {
-      this.stepCallbackId = requestIdleCallback(this.step);
+      if (window.requestIdleCallback != null) {
+        this.stepCallbackId = requestIdleCallback(this.step);
+      } else {
+        setTimeout(function () {
+          _this3.step({
+            timeRemaining: function timeRemaining() {
+              return 16;
+            },
+            didTimeout: false
+          });
+        }, 10);
+      }
     }
 
     var diff = performance.now() - start;

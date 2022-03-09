@@ -66,6 +66,7 @@
         "dist"
     ],
     "dependencies": {
+        "@livelybone/request-idle-callback": "^1.1.0",
         "@types/requestidlecallback": "^0.3.4",
         "jest-canvas-mock": "^2.3.1"
     }
