@@ -1,6 +1,7 @@
 import React, { useRef, useEffect } from "react"
 import type { Size, AttributeCollection } from "./models/"
 import { getSharedSupervisor } from "./render"
+import "./PinkKoala.css"
 
 export type PinkKoalaProps = {
     drawing: any
@@ -28,7 +29,7 @@ export const PinkKoala = (props: PinkKoalaProps) => {
     }, [props.drawing, containerRef])
 
     return (
-        <div ref={containerRef} className="Drawing">
+        <div ref={containerRef} className="PinkKoala">
             {props.layers.map((layer) => (
                 <canvas
                     key={layer}

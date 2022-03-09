@@ -1,0 +1,9 @@
+.PinkKoala {
+    position: relative;
+}
+
+.PinkKoala canvas {
+    position: absolute;
+    top: 0;
+    left: 0;
+}

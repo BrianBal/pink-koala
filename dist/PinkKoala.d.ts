@@ -1,4 +1,5 @@
 import type { Size, AttributeCollection } from "./models/";
+import "./PinkKoala.css";
 export declare type PinkKoalaProps = {
     drawing: any;
     drawingProps: AttributeCollection | null;

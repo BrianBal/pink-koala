@@ -1345,7 +1345,7 @@ var PinkKoala = function PinkKoala(props) {
   }, [props.drawing, containerRef]);
   return React__default.createElement("div", {
     ref: containerRef,
-    className: "Drawing"
+    className: "PinkKoala"
   }, props.layers.map(function (layer) {
     return React__default.createElement("canvas", {
       key: layer,
