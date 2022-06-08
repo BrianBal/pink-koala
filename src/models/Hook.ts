@@ -4,19 +4,21 @@ export type EffectHookCallback = () => EffectHookCallback | null | void
 export type TickHookCallback = (now: number, delta: number) => void
 
 export type Hook = {
-	state: any
-	queue: any[]
-	pendingEffects: EffectHookCallback[]
-	pendingTicks: EffectHookCallback[]
-	pendingUnmount: EffectHookCallback[]
+    state: any
+    queue: any[]
+    pendingEffects: EffectHookCallback[]
+    pendingTicks: EffectHookCallback[]
+    pendingUnmount: EffectHookCallback[]
+    pendingLayout: EffectHookCallback[]
 }
 
 export function createHook(): Hook {
-	return {
-		state: {},
-		queue: [],
-		pendingEffects: [],
-		pendingTicks: [],
-		pendingUnmount: [],
-	}
+    return {
+        state: {},
+        queue: [],
+        pendingEffects: [],
+        pendingTicks: [],
+        pendingUnmount: [],
+        pendingLayout: []
+    }
 }

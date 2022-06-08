@@ -1,5 +1,5 @@
 /// <reference types="requestidlecallback" />
-import { Node } from "../models";
+import { Node, Size } from "../models";
 declare type ChildrenDiff = {
     children: Node[];
     removed: Node[];
@@ -7,6 +7,8 @@ declare type ChildrenDiff = {
 export declare class StateManager {
     AUTO_LOOP: boolean;
     private paintCount;
+    size: Size;
+    private _nodeFrame;
     _root: Node | null;
     private _node;
     currentRoot: Node | null;
@@ -25,11 +27,16 @@ export declare class StateManager {
     step(deadline: IdleDeadline): void;
     performNextUnitOfWork(): void;
     commitRoot(): void;
+    resolveCalculatedFrames(node: Node, parent: Node | null): void;
+    resolveIntrinsicFrames(node: Node, parent: Node | null): void;
+    resolveWidth(node: Node): number;
+    resolveHeight(node: Node): number;
+    debugFrames(node: Node, depth?: number): void;
     requestRootUpdate(): void;
     startRootUpdate(): void;
     workTimerHooks(node: Node): void;
-    workEffectHooks(node: Node): void;
-    workUmountHooks(node: Node): void;
+    workEffectHooks(node: Node, includeChildren?: boolean): void;
+    workLayoutHooks(node: Node): void;
     updateNode(node: Node): Node[];
     propigateNeedsDraw(parent: Node, inherited?: boolean): boolean;
     diffChildren(nextChildren: Node[], prevChildren: Node[]): ChildrenDiff;

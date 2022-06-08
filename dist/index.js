@@ -96,10 +96,6 @@ function _createForOfIteratorHelperLoose(o, allowArrayLike) {
 
 var Fragment = "fragment";
 function createElement(type, props) {
-  for (var _len = arguments.length, children = new Array(_len > 2 ? _len - 2 : 0), _key = 2; _key < _len; _key++) {
-    children[_key - 2] = arguments[_key];
-  }
-
   var name = "";
 
   if (typeof type === "string") {
@@ -108,13 +104,11 @@ function createElement(type, props) {
     name = type.name;
   }
 
-  if (name === "text" || name === "string") {
-    if (children.length > 0) {
-      props.text = children.join(" ");
-      children = [];
-    }
+  for (var _len = arguments.length, children = new Array(_len > 2 ? _len - 2 : 0), _key = 2; _key < _len; _key++) {
+    children[_key - 2] = arguments[_key];
   }
 
+  console.log("createElement", name, props, children);
   return {
     type: type,
     name: name,
@@ -123,9 +117,71 @@ function createElement(type, props) {
     alternate: null,
     hooks: [],
     needsDraw: false,
-    cache: null
+    cache: null,
+    frame: null
   };
 }
+
+function createHook() {
+  return {
+    state: {},
+    queue: [],
+    pendingEffects: [],
+    pendingTicks: [],
+    pendingUnmount: [],
+    pendingLayout: []
+  };
+}
+
+function mkPoint(x, y) {
+  return {
+    x: x,
+    y: y
+  };
+}
+function pointLerp(a, b, t) {
+  return mkPoint(a.x + (b.x - a.x) * t, a.y + (b.y - a.y) * t);
+}
+function pointAt(p, angle, distance) {
+  return pointLerp(p, mkPoint(p.x + Math.cos(angle) * distance, p.y + Math.sin(angle) * distance), 1);
+}
+
+function mkRect(x, y, width, height) {
+  return {
+    x: x,
+    y: y,
+    width: width,
+    height: height
+  };
+}
+function rectLeft(rect) {
+  return rect.x;
+}
+function rectRight(rect) {
+  return rect.x + rect.width;
+}
+function rectTop(rect) {
+  return rect.y;
+}
+function rectBottom(rect) {
+  return rect.y + rect.height;
+}
+function rectCenter(rect) {
+  return mkPoint(rect.x + rect.width / 2, rect.y + rect.height / 2);
+}
+function rectContains(rect, point) {
+  return point.x >= rectLeft(rect) && point.x <= rectRight(rect) && point.y >= rectTop(rect) && point.y <= rectBottom(rect);
+}
+function rectIntersects(a, b) {
+  return rectLeft(a) <= rectRight(b) && rectRight(a) >= rectLeft(b) && rectTop(a) <= rectBottom(b) && rectBottom(a) >= rectTop(b);
+}
+
+var mkSize = function mkSize(width, height) {
+  return {
+    width: width,
+    height: height
+  };
+};
 
 function flattenChildren(children) {
   var nodes = [];
@@ -136,7 +192,7 @@ function flattenChildren(children) {
 
       if (Array.isArray(child)) {
         nodes = nodes.concat(flattenChildren(child));
-      } else {
+      } else if (child) {
         nodes.push(child);
       }
     }
@@ -186,7 +242,8 @@ function minifyNode(node) {
     alternate: null,
     hooks: node.hooks,
     needsDraw: false,
-    cache: node.cache
+    cache: node.cache,
+    frame: node.frame
   };
   return pruneGrandChildren(mini);
 }
@@ -381,10 +438,7 @@ var RectangleJob = /*#__PURE__*/function (_PaintJob) {
   var _proto = RectangleJob.prototype;
 
   _proto.paint = function paint() {
-    var x = parseFloat(this.node.props.x) || 0;
-    var y = parseFloat(this.node.props.y) || 0;
-    var width = parseFloat(this.node.props.width) || 50;
-    var height = parseFloat(this.node.props.height) || 50;
+    var frm = this.node.frame;
 
     if (this.canvas) {
       var ctx = this.canvas.getContext("2d");
@@ -397,11 +451,12 @@ var RectangleJob = /*#__PURE__*/function (_PaintJob) {
       ctx.beginPath();
 
       if (cu.shouldFill) {
-        ctx.fillRect(x, y, width, height);
+        console.log("RectanbleJob.paint fill", frm.x, frm.y, frm.width, frm.height);
+        ctx.fillRect(frm.x, frm.y, frm.width, frm.height);
       }
 
       if (cu.shouldStroke) {
-        ctx.strokeRect(x, y, width, height);
+        ctx.strokeRect(frm.x, frm.y, frm.width, frm.height);
       }
 
       if (cu.hasChanged) {
@@ -427,9 +482,9 @@ var TextJob = /*#__PURE__*/function (_PaintJob) {
   var _proto = TextJob.prototype;
 
   _proto.paint = function paint() {
-    var x = parseFloat(this.node.props.x) || 0;
-    var y = parseFloat(this.node.props.y) || 0;
-    var text = this.node.props.text || "Hello World";
+    var x = this.node.frame.x;
+    var y = this.node.frame.y;
+    var text = this.node.props.text || "";
 
     if (this.canvas) {
       var ctx = this.canvas.getContext("2d");
@@ -474,16 +529,8 @@ var CircleJob = /*#__PURE__*/function (_PaintJob) {
   var _proto = CircleJob.prototype;
 
   _proto.paint = function paint() {
-    var x = parseFloat(this.node.props.x) || 0;
-    var y = parseFloat(this.node.props.y) || 0;
-    var radius = 50;
-
-    if (this.node.props.radius) {
-      radius = parseFloat(this.node.props.radius) || 50;
-    } else {
-      radius = parseFloat(this.node.props.width) || 50;
-      radius = radius / 2;
-    }
+    var frm = this.node.frame;
+    var radius = frm.width / 2;
 
     if (this.canvas) {
       var ctx = this.canvas.getContext("2d");
@@ -494,7 +541,7 @@ var CircleJob = /*#__PURE__*/function (_PaintJob) {
       }
 
       ctx.beginPath();
-      ctx.ellipse(x + radius, y + radius, radius, radius, 0, 0, 2 * Math.PI);
+      ctx.ellipse(frm.x + radius, frm.y + radius, radius, radius, 0, 0, 2 * Math.PI);
 
       if (cu.shouldFill) {
         ctx.fill();
@@ -527,9 +574,8 @@ var PathJob = /*#__PURE__*/function (_PaintJob) {
   var _proto = PathJob.prototype;
 
   _proto.paint = function paint() {
-    var _this$node$props$clos;
-
-    var closePath = (_this$node$props$clos = this.node.props.closed) != null ? _this$node$props$clos : false;
+    var frm = this.node.frame;
+    var closePath = this.node.props.closed ? this.node.props.closed : false;
     var path = this.node.props.path || [];
 
     if (this.canvas) {
@@ -547,9 +593,9 @@ var PathJob = /*#__PURE__*/function (_PaintJob) {
         var pt = _step.value;
 
         if (i === 0) {
-          ctx.moveTo(pt.x, pt.y);
+          ctx.moveTo(frm.x + pt.x, frm.y + pt.y);
         } else {
-          ctx.lineTo(pt.x, pt.y);
+          ctx.lineTo(frm.x + pt.x, frm.y + pt.y);
         }
 
         i++;
@@ -576,66 +622,6 @@ var PathJob = /*#__PURE__*/function (_PaintJob) {
   return PathJob;
 }(PaintJob);
 
-function createHook() {
-  return {
-    state: {},
-    queue: [],
-    pendingEffects: [],
-    pendingTicks: [],
-    pendingUnmount: []
-  };
-}
-
-function mkPoint(x, y) {
-  return {
-    x: x,
-    y: y
-  };
-}
-function pointLerp(a, b, t) {
-  return mkPoint(a.x + (b.x - a.x) * t, a.y + (b.y - a.y) * t);
-}
-function pointAt(p, angle, distance) {
-  return pointLerp(p, mkPoint(p.x + Math.cos(angle) * distance, p.y + Math.sin(angle) * distance), 1);
-}
-
-function mkRect(x, y, width, height) {
-  return {
-    x: x,
-    y: y,
-    width: width,
-    height: height
-  };
-}
-function rectLeft(rect) {
-  return rect.x;
-}
-function rectRight(rect) {
-  return rect.x + rect.width;
-}
-function rectTop(rect) {
-  return rect.y;
-}
-function rectBottom(rect) {
-  return rect.y + rect.height;
-}
-function rectCenter(rect) {
-  return mkPoint(rect.x + rect.width / 2, rect.y + rect.height / 2);
-}
-function rectContains(rect, point) {
-  return point.x >= rectLeft(rect) && point.x <= rectRight(rect) && point.y >= rectTop(rect) && point.y <= rectBottom(rect);
-}
-function rectIntersects(a, b) {
-  return rectLeft(a) <= rectRight(b) && rectRight(a) >= rectLeft(b) && rectTop(a) <= rectBottom(b) && rectBottom(a) >= rectTop(b);
-}
-
-var mkSize = function mkSize(width, height) {
-  return {
-    width: width,
-    height: height
-  };
-};
-
 var PolygonJob = /*#__PURE__*/function (_PaintJob) {
   _inheritsLoose(PolygonJob, _PaintJob);
 
@@ -650,19 +636,10 @@ var PolygonJob = /*#__PURE__*/function (_PaintJob) {
   var _proto = PolygonJob.prototype;
 
   _proto.paint = function paint() {
-    var x = parseFloat(this.node.props.x) || 0;
-    var y = parseFloat(this.node.props.y) || 0;
+    var frm = this.node.frame;
+    var radius = frm.width / 2;
     var sides = parseFloat(this.node.props.sides) || 5;
-    var radius = 50;
-
-    if (this.node.props.radius) {
-      radius = parseFloat(this.node.props.radius) || 25;
-    } else {
-      radius = parseFloat(this.node.props.width) || 50;
-      radius = radius / 2;
-    }
-
-    var center = mkPoint(x + radius, y + radius);
+    var center = mkPoint(frm.x + radius, frm.y + radius);
     var angle = Math.PI * 2 / sides;
     var path = [];
 
@@ -770,6 +747,8 @@ var GroupJob = /*#__PURE__*/function (_PaintJob) {
   var _proto = GroupJob.prototype;
 
   _proto.paint = function paint() {
+    var frm = this.node.frame;
+
     if (this.canvas) {
       this.pushCanvas(this.canvas);
       var tmpCanvas = this.node.cache;
@@ -777,15 +756,15 @@ var GroupJob = /*#__PURE__*/function (_PaintJob) {
       if (!tmpCanvas) {
         tmpCanvas = document.createElement("canvas");
         tmpCanvas.id = "tmp-group-canvas-" + groupId++;
-        tmpCanvas.height = this.canvas.height;
-        tmpCanvas.width = this.canvas.width;
+        tmpCanvas.height = frm.height;
+        tmpCanvas.width = frm.width;
         this.node.cache = tmpCanvas;
       }
 
       var tmpContext = tmpCanvas.getContext("2d");
 
       if (tmpContext) {
-        tmpContext.clearRect(0, 0, tmpCanvas.width, tmpCanvas.height);
+        tmpContext.clearRect(frm.x, frm.y, frm.width, frm.height);
         this.canvas = tmpCanvas;
       }
     }
@@ -808,12 +787,14 @@ var GroupEndJob = /*#__PURE__*/function (_PaintJob) {
   var _proto = GroupEndJob.prototype;
 
   _proto.paint = function paint() {
+    var frm = this.node.frame;
+
     if (this.node.needsDraw) {
       var canvas = this.popCanvas();
 
       if (canvas) {
         var origContext = canvas.getContext("2d");
-        origContext.drawImage(this.node.cache, 0, 0);
+        origContext.drawImage(this.node.cache, frm.x, frm.y);
         this.canvas = canvas;
       }
     } else {
@@ -822,7 +803,7 @@ var GroupEndJob = /*#__PURE__*/function (_PaintJob) {
       if (_canvas && this.node.cache) {
         var ctx = _canvas.getContext("2d");
 
-        ctx === null || ctx === void 0 ? void 0 : ctx.drawImage(this.node.cache, 0, 0);
+        ctx === null || ctx === void 0 ? void 0 : ctx.drawImage(this.node.cache, frm.x, frm.y);
       }
     }
   };
@@ -845,11 +826,13 @@ function buildPaintJobs(node) {
         jobs.push(new FrameJob(node));
         break;
 
+      case "Group":
       case "group":
       case "pkgroup":
         jobs.push(new GroupJob(node));
         break;
 
+      case "Rectangle":
       case "rect":
       case "pkrect":
       case "rectangle":
@@ -864,16 +847,19 @@ function buildPaintJobs(node) {
         jobs.push(new TextJob(node));
         break;
 
+      case "Circle":
       case "circle":
       case "pkcircle":
         jobs.push(new CircleJob(node));
         break;
 
+      case "Path":
       case "path":
       case "pkpath":
         jobs.push(new PathJob(node));
         break;
 
+      case "Polygon":
       case "polygon":
       case "pkpolygon":
         jobs.push(new PolygonJob(node));
@@ -896,6 +882,7 @@ function buildPaintJobs(node) {
         jobs.push(new FrameEndJob(node));
         break;
 
+      case "Group":
       case "group":
       case "pkgroup":
         jobs.push(new GroupEndJob(node));
@@ -903,6 +890,7 @@ function buildPaintJobs(node) {
     }
   } else {
     switch (node.name) {
+      case "Group":
       case "group":
       case "pkgroup":
         jobs.push(new GroupEndJob(node));
@@ -938,6 +926,8 @@ var StateManager = /*#__PURE__*/function () {
 
     this.AUTO_LOOP = true;
     this.paintCount = 0;
+    this.size = mkSize(10, 10);
+    this._nodeFrame = mkRect(0, 0, 10, 10);
     this._root = null;
     this._node = null;
     this.currentRoot = null;
@@ -979,7 +969,8 @@ var StateManager = /*#__PURE__*/function () {
       alternate: null,
       hooks: [],
       needsDraw: false,
-      cache: null
+      cache: null,
+      frame: mkRect(0, 0, this.size.width, this.size.height)
     };
     this.unitsOfWork.push(this._root);
   };
@@ -1031,7 +1022,10 @@ var StateManager = /*#__PURE__*/function () {
       this.performNextUnitOfWork();
     }
 
-    if (this.unitsOfWork.length === 0) {
+    if (this.unitsOfWork.length === 0 && this._root != null) {
+      this.resolveIntrinsicFrames(this._root, null);
+      this.resolveCalculatedFrames(this._root, null);
+      this.workLayoutHooks(this._root);
       this.commitRoot();
     }
 
@@ -1074,6 +1068,7 @@ var StateManager = /*#__PURE__*/function () {
     }
 
     if (this._node) {
+      this.workEffectHooks(this._node, false);
       var next = this.updateNode(this._node);
 
       for (var _iterator = _createForOfIteratorHelperLoose(next), _step; !(_step = _iterator()).done;) {
@@ -1090,7 +1085,146 @@ var StateManager = /*#__PURE__*/function () {
     if (this.currentRoot) {
       this.propigateNeedsDraw(this.currentRoot);
       this.paintCount++;
+      console.log("StateManager.commitRoot");
+      this.debugFrames(this.currentRoot);
       paint(this.currentRoot);
+    }
+  };
+
+  _proto.resolveCalculatedFrames = function resolveCalculatedFrames(node, parent) {
+    if (parent && parent.frame && node.props && node.frame) {
+      if (node.name === "fragment") {
+        node.frame = _extends({}, parent.frame, {
+          x: 0,
+          y: 0
+        });
+      }
+
+      var w = node.props.width;
+      var r = node.props.radius;
+
+      if (w && typeof w === "string" && node.props.width.includes("%")) {
+        var wp = parseFloat(node.props.width) / 100;
+        node.frame.width = parent.frame.width * wp;
+      }
+
+      if (!w && r) {
+        if (r && typeof r === "string" && r.includes("%")) {
+          var rp = parseFloat(r) / 100;
+          node.frame.width = parent.frame.width * rp * 2;
+        } else {
+          node.frame.width = parseFloat(r) * 2;
+        }
+      }
+
+      var h = node.props.height;
+
+      if (h && typeof h === "string" && node.props.height.includes("%")) {
+        var hp = parseFloat(node.props.height) / 100;
+        node.frame.height = parent.frame.height * hp;
+      }
+
+      var x = node.props.x;
+
+      if (x && typeof x === "string" && x.includes("%")) {
+        var xp = parseFloat(node.props.x) / 100;
+        var xPos = parent.frame.width * xp;
+        node.frame.x = xPos;
+      }
+
+      var y = node.props.y;
+
+      if (y && typeof y === "string" && y.includes("%")) {
+        var yp = parseFloat(node.props.y) / 100;
+        var yPos = parent.frame.height * yp;
+        node.frame.y = yPos;
+      }
+
+      node.frame.x = node.frame.x + parent.frame.x;
+      node.frame.y = node.frame.y + parent.frame.y;
+    }
+
+    for (var _iterator2 = _createForOfIteratorHelperLoose(node.children), _step2; !(_step2 = _iterator2()).done;) {
+      var child = _step2.value;
+      this.resolveCalculatedFrames(child, node);
+    }
+  };
+
+  _proto.resolveIntrinsicFrames = function resolveIntrinsicFrames(node, parent) {
+    for (var _iterator3 = _createForOfIteratorHelperLoose(node.children), _step3; !(_step3 = _iterator3()).done;) {
+      var child = _step3.value;
+      this.resolveIntrinsicFrames(child, node);
+    }
+
+    var frame = mkRect(0, 0, 0, 0);
+
+    if (node.props.x) {
+      frame.x = parseFloat(node.props.x);
+    }
+
+    if (node.props.y) {
+      frame.y = parseFloat(node.props.y);
+    }
+
+    frame.width = this.resolveWidth(node);
+    frame.height = this.resolveHeight(node);
+    node.frame = frame;
+  };
+
+  _proto.resolveWidth = function resolveWidth(node) {
+    var w = 0;
+
+    if (node.frame && node.frame.width) {
+      w = node.frame.width;
+    } else if (node.props.width) {
+      w = parseFloat(node.props.width);
+    } else if (node.props._intrinsicWidth) {
+      w = parseFloat(node.props._intrinsicWidth);
+    } else {
+      for (var _iterator4 = _createForOfIteratorHelperLoose(node.children), _step4; !(_step4 = _iterator4()).done;) {
+        var child = _step4.value;
+        w = Math.max(w, this.resolveWidth(child));
+      }
+    }
+
+    return w;
+  };
+
+  _proto.resolveHeight = function resolveHeight(node) {
+    var h = 0;
+
+    if (node.frame && node.frame.height) {
+      h = node.frame.height;
+    } else if (node.props.height) {
+      h = parseFloat(node.props.height);
+    } else if (node.props._intrinsicHeight) {
+      h = parseFloat(node.props._intrinsicHeight);
+    } else {
+      for (var _iterator5 = _createForOfIteratorHelperLoose(node.children), _step5; !(_step5 = _iterator5()).done;) {
+        var child = _step5.value;
+        h = Math.max(h, this.resolveHeight(child));
+      }
+    }
+
+    return h;
+  };
+
+  _proto.debugFrames = function debugFrames(node, depth) {
+    if (depth === void 0) {
+      depth = 0;
+    }
+
+    var indent = "".padEnd(depth * 4, " ");
+
+    if (node.frame) {
+      console.log(indent, node.name, "x:", node.frame.x, ", y:", node.frame.y, "- w:", node.frame.width, ", h:", node.frame.height);
+    } else {
+      console.log(indent, node.name, "no-frame", node);
+    }
+
+    for (var _iterator6 = _createForOfIteratorHelperLoose(node.children), _step6; !(_step6 = _iterator6()).done;) {
+      var child = _step6.value;
+      this.debugFrames(child, depth + 1);
     }
   };
 
@@ -1102,15 +1236,20 @@ var StateManager = /*#__PURE__*/function () {
     this.hasUpdateBeenRequested = false;
 
     if (this.currentRoot) {
+      this._nodeFrame = mkRect(0, 0, this.size.width, this.size.height);
       this._root = {
         name: "root",
         type: this.currentRoot.type,
-        props: this.currentRoot.props,
+        props: _extends({}, this.currentRoot.props, {
+          width: this.size.width,
+          height: this.size.height
+        }),
         children: this.currentRoot.children,
         alternate: minifyNode(this.currentRoot),
         hooks: this.currentRoot.hooks,
         needsDraw: false,
-        cache: null
+        cache: null,
+        frame: null
       };
     }
 
@@ -1120,16 +1259,16 @@ var StateManager = /*#__PURE__*/function () {
   };
 
   _proto.workTimerHooks = function workTimerHooks(node) {
-    for (var _iterator2 = _createForOfIteratorHelperLoose(node.children), _step2; !(_step2 = _iterator2()).done;) {
-      var child = _step2.value;
+    for (var _iterator7 = _createForOfIteratorHelperLoose(node.children), _step7; !(_step7 = _iterator7()).done;) {
+      var child = _step7.value;
       this.workTimerHooks(child);
     }
 
-    for (var _iterator3 = _createForOfIteratorHelperLoose(node.hooks), _step3; !(_step3 = _iterator3()).done;) {
-      var hook = _step3.value;
+    for (var _iterator8 = _createForOfIteratorHelperLoose(node.hooks), _step8; !(_step8 = _iterator8()).done;) {
+      var hook = _step8.value;
 
-      for (var _iterator4 = _createForOfIteratorHelperLoose(hook.pendingTicks), _step4; !(_step4 = _iterator4()).done;) {
-        var action = _step4.value;
+      for (var _iterator9 = _createForOfIteratorHelperLoose(hook.pendingTicks), _step9; !(_step9 = _iterator9()).done;) {
+        var action = _step9.value;
         action();
       }
 
@@ -1137,17 +1276,23 @@ var StateManager = /*#__PURE__*/function () {
     }
   };
 
-  _proto.workEffectHooks = function workEffectHooks(node) {
-    for (var _iterator5 = _createForOfIteratorHelperLoose(node.children), _step5; !(_step5 = _iterator5()).done;) {
-      var child = _step5.value;
-      this.workEffectHooks(child);
+  _proto.workEffectHooks = function workEffectHooks(node, includeChildren) {
+    if (includeChildren === void 0) {
+      includeChildren = true;
     }
 
-    for (var _iterator6 = _createForOfIteratorHelperLoose(node.hooks), _step6; !(_step6 = _iterator6()).done;) {
-      var hook = _step6.value;
+    if (includeChildren) {
+      for (var _iterator10 = _createForOfIteratorHelperLoose(node.children), _step10; !(_step10 = _iterator10()).done;) {
+        var child = _step10.value;
+        this.workEffectHooks(child);
+      }
+    }
 
-      for (var _iterator7 = _createForOfIteratorHelperLoose(hook.pendingEffects), _step7; !(_step7 = _iterator7()).done;) {
-        var action = _step7.value;
+    for (var _iterator11 = _createForOfIteratorHelperLoose(node.hooks), _step11; !(_step11 = _iterator11()).done;) {
+      var hook = _step11.value;
+
+      for (var _iterator12 = _createForOfIteratorHelperLoose(hook.pendingEffects), _step12; !(_step12 = _iterator12()).done;) {
+        var action = _step12.value;
         var unmount = hook.queue.pop();
 
         if (unmount) {
@@ -1165,22 +1310,26 @@ var StateManager = /*#__PURE__*/function () {
     }
   };
 
-  _proto.workUmountHooks = function workUmountHooks(node) {
-    for (var _iterator8 = _createForOfIteratorHelperLoose(node.children), _step8; !(_step8 = _iterator8()).done;) {
-      var child = _step8.value;
-      this.workEffectHooks(child);
+  _proto.workLayoutHooks = function workLayoutHooks(node) {
+    for (var _iterator13 = _createForOfIteratorHelperLoose(node.children), _step13; !(_step13 = _iterator13()).done;) {
+      var child = _step13.value;
+      this.workLayoutHooks(child);
     }
 
-    for (var _iterator9 = _createForOfIteratorHelperLoose(node.hooks), _step9; !(_step9 = _iterator9()).done;) {
-      var hook = _step9.value;
+    this._node = node;
 
-      for (var _iterator10 = _createForOfIteratorHelperLoose(hook.pendingUnmount), _step10; !(_step10 = _iterator10()).done;) {
-        var action = _step10.value;
+    for (var _iterator14 = _createForOfIteratorHelperLoose(node.hooks), _step14; !(_step14 = _iterator14()).done;) {
+      var hook = _step14.value;
+
+      for (var _iterator15 = _createForOfIteratorHelperLoose(hook.pendingLayout), _step15; !(_step15 = _iterator15()).done;) {
+        var action = _step15.value;
         action();
       }
 
-      hook.pendingUnmount = [];
+      hook.pendingLayout = [];
     }
+
+    this._node = null;
   };
 
   _proto.updateNode = function updateNode(node) {
@@ -1193,9 +1342,15 @@ var StateManager = /*#__PURE__*/function () {
     if (node.type instanceof Function) {
       this.hookIndex = 0;
       node.hooks = [];
-      prevChildren = node.children;
+
+      if (node.alternate) {
+        prevChildren = node.alternate.children;
+      } else if (node.children) {
+        prevChildren = node.children;
+      }
+
       var f = node.type;
-      node.children = [f(node.props)];
+      node.children = [f(node.props, node.children)];
     } else {
       prevChildren = node.alternate ? node.alternate.children : [];
     }
@@ -1213,14 +1368,14 @@ var StateManager = /*#__PURE__*/function () {
 
     var needsDraw = parent.needsDraw || inherited && !["pklayer", "layer", "group", "pkgroup"].includes(parent.name);
 
-    for (var _iterator11 = _createForOfIteratorHelperLoose(parent.children), _step11; !(_step11 = _iterator11()).done;) {
-      var _child = _step11.value;
+    for (var _iterator16 = _createForOfIteratorHelperLoose(parent.children), _step16; !(_step16 = _iterator16()).done;) {
+      var _child = _step16.value;
       needsDraw = needsDraw || this.propigateNeedsDraw(_child, needsDraw);
     }
 
     if (needsDraw) {
-      for (var _iterator12 = _createForOfIteratorHelperLoose(parent.children), _step12; !(_step12 = _iterator12()).done;) {
-        var child = _step12.value;
+      for (var _iterator17 = _createForOfIteratorHelperLoose(parent.children), _step17; !(_step17 = _iterator17()).done;) {
+        var child = _step17.value;
         this.propigateNeedsDraw(child, true);
       }
     }
@@ -1260,8 +1415,8 @@ var StateManager = /*#__PURE__*/function () {
     var next = null;
     var sameType = false;
 
-    if (a && b) {
-      sameType = a.type === b.type;
+    if (!!a && !!b) {
+      sameType = a.type == b.type;
     }
 
     if (a && b && sameType) {
@@ -1279,7 +1434,8 @@ var StateManager = /*#__PURE__*/function () {
         needsDraw: needsDraw,
         hooks: b.hooks,
         cache: b.cache,
-        alternate: minifyNode(b)
+        alternate: minifyNode(b),
+        frame: b.frame
       };
     } else if (a && !sameType) {
       next = {
@@ -1290,8 +1446,11 @@ var StateManager = /*#__PURE__*/function () {
         alternate: null,
         needsDraw: true,
         hooks: [],
-        cache: null
+        cache: null,
+        frame: a.frame
       };
+    } else {
+      console.error("diffNode", a, b, sameType);
     }
 
     return next;
@@ -1363,13 +1522,15 @@ var PinkKoala = function PinkKoala(props) {
       var canvases = Array.from(canvasNodes).map(function (node) {
         return node;
       });
-      getSharedSupervisor().addLayer({
+      var sup = getSharedSupervisor();
+      sup.addLayer({
         child: props.drawing,
         canvases: canvases
       });
-      getSharedSupervisor().start();
+      sup.stateManager.size = props.size;
+      sup.start();
     }
-  }, [props.drawing, containerRef]);
+  }, [props.drawing, containerRef, props.size]);
   return React__default.createElement("div", {
     ref: containerRef,
     className: "PinkKoala"
@@ -1481,9 +1642,11 @@ function useReducer(reducer, initialState, init) {
   }
 
   var actions = prevHook ? prevHook.queue : [];
-  actions.forEach(function (action) {
+
+  for (var _iterator = _createForOfIteratorHelperLoose(actions), _step; !(_step = _iterator()).done;) {
+    var action = _step.value;
     hook.state = reducer(hook.state, action);
-  });
+  }
 
   if (prevHook) {
     prevHook.queue = [];
@@ -1539,9 +1702,435 @@ function useTicker(callback) {
   context.hookIndex++;
 }
 
+function useRenderContext() {
+  var _getHookState = getHookState(),
+      context = _getHookState.context;
+
+  var value = {
+    rootWidth: 0,
+    rootHeight: 0,
+    nodeRef: null
+  };
+
+  if (context) {
+    value = {
+      rootWidth: context.size.width,
+      rootHeight: context.size.height,
+      nodeRef: context.node
+    };
+  }
+
+  return value;
+}
+
+function useLayoutEffect(callback, args) {
+  var hookState = getHookState();
+  var prevHook = hookState.prevHook;
+  var context = hookState.context;
+
+  if (!context || !context.node) {
+    throw new Error("useLayoutEffect must be called from within a render function");
+  }
+
+  var hook = createHook();
+
+  if (prevHook) {
+    hook.state = prevHook.state;
+    hook.queue = prevHook.queue;
+  }
+
+  if (haveArgsChanged(args, prevHook === null || prevHook === void 0 ? void 0 : prevHook.state)) {
+    hook.pendingLayout.push(callback);
+    hook.state = args;
+  }
+
+  context.node.hooks.push(hook);
+  context.hookIndex++;
+}
+
+var Layer = function Layer(props, children) {
+  var _useRenderContext = useRenderContext(),
+      rootWidth = _useRenderContext.rootWidth,
+      rootHeight = _useRenderContext.rootHeight;
+
+  var attr = _extends({}, props, {
+    width: rootWidth,
+    height: rootHeight
+  });
+
+  return createElement("pklayer", Object.assign({}, attr), children);
+};
+
+var Rectangle = function Rectangle(props, children) {
+  if (children && children.length > 0) {
+    return createElement(Fragment, null, children);
+  } else {
+    return null;
+  }
+};
+
+var Circle = function Circle(props, children) {
+  if (children && children.length > 0) {
+    return createElement(Fragment, null, children);
+  } else {
+    return null;
+  }
+};
+
+var fontCanvas = document.createElement("canvas");
+var fontCtx = fontCanvas.getContext("2d");
+var Text = function Text(props, children) {
+  var attr = _extends({}, props, {
+    text: ""
+  });
+
+  var text = "";
+
+  if (children && children.length > 0) {
+    text = children.join(" ");
+  }
+
+  attr.text = text;
+
+  if (props.font) {
+    fontCtx.textBaseline = "top";
+    fontCtx.font = props.font;
+    var size = fontCtx.measureText(text || "");
+
+    if (size) {
+      attr._intrinsicWidth = size.width;
+      attr._intrinsicHeight = size.fontBoundingBoxDescent - size.fontBoundingBoxAscent;
+    }
+  }
+
+  return createElement("pktext", Object.assign({}, attr));
+};
+
+function translateFrame(node, x, y) {
+  if (node.frame) {
+    node.frame.x += x;
+    node.frame.y += y;
+  }
+
+  for (var _iterator = _createForOfIteratorHelperLoose(node.children), _step; !(_step = _iterator()).done;) {
+    var child = _step.value;
+    translateFrame(child, x, y);
+  }
+}
+
+function Row(props, children) {
+  console.log("Row.props", props);
+  console.log("Row.children", children);
+  var justifyContent = props.justifyContent ? props.justifyContent : "start";
+  var alignItems = props.alignItems ? props.alignItems : "start";
+  useLayoutEffect(function () {
+    var _useRenderContext = useRenderContext(),
+        nodeRef = _useRenderContext.nodeRef;
+
+    if (nodeRef) {
+      var x = nodeRef.frame.x;
+      var y = nodeRef.frame.y;
+      var width = null;
+
+      if (props.width) {
+        width = nodeRef.frame.width;
+      }
+
+      var height = null;
+
+      if (props.height) {
+        height = nodeRef.frame.height;
+      }
+
+      var refChildren = nodeRef.children[0].children;
+      var childPadding = 0;
+      var childWidth = 0;
+      var childHeight = 0;
+
+      for (var _iterator = _createForOfIteratorHelperLoose(refChildren), _step; !(_step = _iterator()).done;) {
+        var child = _step.value;
+        console.log("Row.useLayoutEffect start", child.name, child.frame);
+
+        if (child.frame) {
+          childWidth += child.frame.width;
+          childHeight = Math.max(childHeight, child.frame.height);
+        } else {
+          console.error("Row: child has no frame", child);
+        }
+      }
+
+      if (width === null) {
+        width = childWidth;
+        nodeRef.frame.width = width;
+      }
+
+      nodeRef.children[0].frame.width = width;
+
+      if (height === null) {
+        height = childHeight;
+        nodeRef.frame.height = height;
+      }
+
+      nodeRef.children[0].frame.height = height;
+
+      switch (justifyContent) {
+        case "flex-start":
+        case "start":
+          break;
+
+        case "flex-end":
+        case "end":
+          x = x + width - childWidth;
+          break;
+
+        case "center":
+          x = x + (width - childWidth) / 2;
+          break;
+
+        case "space-between":
+          childPadding = (width - childWidth) / (children.length - 1);
+          break;
+
+        case "space-around":
+          childPadding = (width - childWidth) / 2;
+          break;
+
+        case "space-evenly":
+          childPadding = (width - childWidth) / (children.length + 1);
+          break;
+      }
+
+      for (var _iterator2 = _createForOfIteratorHelperLoose(refChildren), _step2; !(_step2 = _iterator2()).done;) {
+        var _child = _step2.value;
+
+        if (!_child.frame) {
+          _child.frame = mkRect(0, 0, 0, 0);
+          console.error("Row: child has no frame", _child);
+        }
+
+        var cy = y;
+        var ch = _child.frame.height;
+
+        switch (alignItems) {
+          case "flex-start":
+          case "start":
+            break;
+
+          case "flex-end":
+          case "end":
+            cy = y + height - _child.frame.height;
+            break;
+
+          case "center":
+          case "baseline":
+            cy = y + (height - _child.frame.height) / 2;
+            break;
+
+          case "stretch":
+            ch = height;
+            break;
+        }
+
+        translateFrame(_child, x, cy);
+        _child.frame.height = ch;
+        console.log("Row.useLayoutEffect end", _child.name, _child.frame);
+        x += _child.frame.width;
+        x += childPadding;
+      }
+    }
+  }, [children, justifyContent, alignItems]);
+  return createElement(Fragment, null, children);
+}
+
+function Column(props, children) {
+  console.log("Column.props", props);
+  console.log("Column.children", children);
+  var justifyContent = props.justifyContent ? props.justifyContent : "start";
+  var alignItems = props.alignItems ? props.alignItems : "start";
+  useLayoutEffect(function () {
+    var _useRenderContext = useRenderContext(),
+        nodeRef = _useRenderContext.nodeRef;
+
+    if (nodeRef) {
+      var x = nodeRef.frame.x;
+      var y = nodeRef.frame.y;
+      var width = null;
+
+      if (props.width) {
+        width = nodeRef.frame.width;
+      }
+
+      var height = null;
+
+      if (props.height) {
+        height = nodeRef.frame.height;
+      }
+
+      var refChildren = nodeRef.children[0].children;
+      var childPadding = 0;
+      var childWidth = 0;
+      var childHeight = 0;
+      var flexCount = 0;
+      var flexibleHight = height ? height : 0;
+
+      for (var _iterator = _createForOfIteratorHelperLoose(refChildren), _step; !(_step = _iterator()).done;) {
+        var child = _step.value;
+
+        if (child.props.flex) {
+          try {
+            var flexNum = parseInt(child.props.flex, 10);
+            flexCount += flexNum;
+          } catch (e) {
+            console.warn(e);
+          }
+        } else if (child.frame) {
+          flexibleHight -= child.frame.height;
+        }
+      }
+
+      for (var _iterator2 = _createForOfIteratorHelperLoose(refChildren), _step2; !(_step2 = _iterator2()).done;) {
+        var _child = _step2.value;
+        console.log("Column.useLayoutEffect start", _child.name, _child.frame);
+
+        if (_child.frame && _child.props.flex && height) {
+          try {
+            var _flexNum = parseInt(_child.props.flex, 10);
+
+            var flexRatio = _flexNum / flexCount;
+            _child.frame.height = flexRatio * flexibleHight;
+            console.log("Column: flex height", _child.name, _child.frame.height, flexRatio);
+            childHeight += _child.frame.height;
+            childWidth = Math.max(childWidth, _child.frame.width);
+          } catch (e) {
+            console.warn(e);
+          }
+        } else if (_child.frame) {
+          childHeight += _child.frame.height;
+          childWidth = Math.max(childWidth, _child.frame.width);
+        } else {
+          console.error("Column: child has no frame", _child);
+        }
+      }
+
+      if (width === null) {
+        width = childWidth;
+        nodeRef.frame.width = width;
+      }
+
+      nodeRef.children[0].frame.width = width;
+
+      if (height === null) {
+        height = childHeight;
+        nodeRef.frame.height = height;
+      }
+
+      nodeRef.children[0].frame.height = height;
+
+      switch (justifyContent) {
+        case "flex-start":
+        case "start":
+          break;
+
+        case "flex-end":
+        case "end":
+          y = y + height - childHeight;
+          break;
+
+        case "center":
+          y = y + (height - childHeight) / 2;
+          break;
+
+        case "space-between":
+          childPadding = (height - childHeight) / (children.length - 1);
+          break;
+
+        case "space-around":
+          childPadding = (height - childHeight) / 2;
+          break;
+
+        case "space-evenly":
+          childPadding = (height - childHeight) / (children.length + 1);
+          break;
+      }
+
+      for (var _iterator3 = _createForOfIteratorHelperLoose(refChildren), _step3; !(_step3 = _iterator3()).done;) {
+        var _child2 = _step3.value;
+
+        if (!_child2.frame) {
+          _child2.frame = mkRect(0, 0, 0, 0);
+          console.error("Column: child has no frame", _child2);
+        }
+
+        var cx = x;
+        var cw = _child2.frame.width;
+
+        switch (alignItems) {
+          case "flex-start":
+          case "start":
+            break;
+
+          case "flex-end":
+          case "end":
+            cx = x + width - _child2.frame.width;
+            break;
+
+          case "center":
+          case "baseline":
+            cx = x + (width - _child2.frame.width) / 2;
+            break;
+
+          case "stretch":
+            cw = width;
+            break;
+        }
+
+        translateFrame(_child2, cx, y);
+        _child2.frame.width = cw;
+        console.log("Column.useLayoutEffect end", _child2.name, _child2.frame);
+        y += _child2.frame.height;
+        y += childPadding;
+      }
+    }
+  }, [children, justifyContent, alignItems]);
+  return createElement(Fragment, null, children);
+}
+
+var Polygon = function Polygon(props, children) {
+  if (children && children.length > 0) {
+    return createElement(Fragment, null, children);
+  } else {
+    return null;
+  }
+};
+
+var Path = function Path(props, children) {
+  if (children && children.length > 0) {
+    return createElement(Fragment, null, children);
+  } else {
+    return null;
+  }
+};
+
+var Group = function Group(props, children) {
+  if (children && children.length > 0) {
+    return createElement(Fragment, null, children);
+  } else {
+    return null;
+  }
+};
+
+exports.Circle = Circle;
+exports.Column = Column;
 exports.Fragment = Fragment;
+exports.Group = Group;
+exports.Layer = Layer;
+exports.Path = Path;
 exports.PinkKoala = PinkKoala;
+exports.Polygon = Polygon;
+exports.Rectangle = Rectangle;
+exports.Row = Row;
 exports.Supervisor = Supervisor;
+exports.Text = Text;
 exports.createElement = createElement;
 exports.getSharedSupervisor = getSharedSupervisor;
 exports.haveArgsChanged = haveArgsChanged;
@@ -1559,6 +2148,7 @@ exports.rectRight = rectRight;
 exports.rectTop = rectTop;
 exports.useEffect = useEffect;
 exports.useEventListener = useEventListener;
+exports.useLayoutEffect = useLayoutEffect;
 exports.useReducer = useReducer;
 exports.useState = useState;
 exports.useTicker = useTicker;

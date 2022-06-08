@@ -30,11 +30,13 @@ export function buildPaintJobs(node: Node): PaintJob[] {
                 jobs.push(new FrameJob(node))
                 break
 
+            case "Group":
             case "group":
             case "pkgroup":
                 jobs.push(new GroupJob(node))
                 break
 
+            case "Rectangle":
             case "rect":
             case "pkrect":
             case "rectangle":
@@ -49,16 +51,19 @@ export function buildPaintJobs(node: Node): PaintJob[] {
                 jobs.push(new TextJob(node))
                 break
 
+            case "Circle":
             case "circle":
             case "pkcircle":
                 jobs.push(new CircleJob(node))
                 break
 
+            case "Path":
             case "path":
             case "pkpath":
                 jobs.push(new PathJob(node))
                 break
 
+            case "Polygon":
             case "polygon":
             case "pkpolygon":
                 jobs.push(new PolygonJob(node))
@@ -82,6 +87,7 @@ export function buildPaintJobs(node: Node): PaintJob[] {
                 jobs.push(new FrameEndJob(node))
                 break
 
+            case "Group":
             case "group":
             case "pkgroup":
                 jobs.push(new GroupEndJob(node))
@@ -90,6 +96,7 @@ export function buildPaintJobs(node: Node): PaintJob[] {
     } else {
         // some items still need to draw from cache
         switch (node.name) {
+            case "Group":
             case "group":
             case "pkgroup":
                 jobs.push(new GroupEndJob(node))

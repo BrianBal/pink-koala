@@ -20,13 +20,15 @@ export const PinkKoala = (props: PinkKoalaProps) => {
                 return node as HTMLCanvasElement
             })
 
-            getSharedSupervisor().addLayer({
+            let sup = getSharedSupervisor()
+            sup.addLayer({
                 child: props.drawing,
                 canvases: canvases
             })
-            getSharedSupervisor().start()
+            sup.stateManager.size = props.size
+            sup.start()
         }
-    }, [props.drawing, containerRef])
+    }, [props.drawing, containerRef, props.size])
 
     return (
         <div ref={containerRef} className="PinkKoala">

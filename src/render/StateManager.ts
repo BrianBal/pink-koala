@@ -1,4 +1,4 @@
-import { Node } from "../models"
+import { mkRect, mkSize, Node, Size, Rect } from "../models"
 import type { AttributeCollection } from "../models"
 import { flattenChildren } from "./flattenChildren"
 import { havePropsChanged } from "./havePropsChanged"
@@ -14,6 +14,9 @@ export class StateManager {
     public AUTO_LOOP = true
 
     private paintCount = 0
+
+    public size: Size = mkSize(10, 10)
+    private _nodeFrame: Rect = mkRect(0, 0, 10, 10)
 
     public _root: Node | null = null
 
@@ -53,7 +56,8 @@ export class StateManager {
             alternate: null,
             hooks: [],
             needsDraw: false,
-            cache: null
+            cache: null,
+            frame: mkRect(0, 0, this.size.width, this.size.height)
         }
         this.unitsOfWork.push(this._root)
     }
@@ -63,7 +67,6 @@ export class StateManager {
         if (this.AUTO_LOOP === false) {
             const onKeyUp = (e: KeyboardEvent) => {
                 if (e.key === " ") {
-                    //console.log("requestRootUpdate")
                     this.requestRootUpdate()
                     let deadline = performance.now() + 16
                     this.step({
@@ -118,7 +121,10 @@ export class StateManager {
             this.performNextUnitOfWork()
         }
 
-        if (this.unitsOfWork.length === 0) {
+        if (this.unitsOfWork.length === 0 && this._root != null) {
+            this.resolveIntrinsicFrames(this._root, null)
+            this.resolveCalculatedFrames(this._root, null)
+            this.workLayoutHooks(this._root)
             this.commitRoot()
         }
 
@@ -158,6 +164,7 @@ export class StateManager {
             this._node = null
         }
         if (this._node) {
+            this.workEffectHooks(this._node, false)
             let next: Node[] = this.updateNode(this._node)
             for (let n of next) {
                 this.unitsOfWork.push(n)
@@ -168,35 +175,167 @@ export class StateManager {
     public commitRoot() {
         this.currentRoot = this._root
         this._root = null
-        //console.log("commitRoot", this.currentRoot)
         // TODO: hooks
         // TODO: deletions
-        // TODO: paint
         if (this.currentRoot) {
             this.propigateNeedsDraw(this.currentRoot)
             this.paintCount++
+            console.log("StateManager.commitRoot")
+            //console.log(this.currentRoot)
+            this.debugFrames(this.currentRoot)
             paint(this.currentRoot)
         }
     }
 
-    public requestRootUpdate() {
-        //console.log("requestRootUpdate")
+    public resolveCalculatedFrames(node: Node, parent: Node | null): void {
+        if (parent && parent.frame && node.props && node.frame) {
+            if (node.name === "fragment") {
+                // create frames for fragments
+                node.frame = { ...parent.frame, x: 0, y: 0 }
+            }
+            // handle percentage based frames
+            let w = node.props.width
+            let r = node.props.radius
+            if (w && typeof w === "string" && node.props.width.includes("%")) {
+                let wp = parseFloat(node.props.width) / 100
+                node.frame.width = parent.frame.width * wp
+            }
+            // handle radius property
+            if (!w && r) {
+                if (r && typeof r === "string" && r.includes("%")) {
+                    let rp = parseFloat(r) / 100
+                    node.frame.width = parent.frame.width * rp * 2
+                } else {
+                    node.frame.width = parseFloat(r) * 2
+                }
+            }
+            let h = node.props.height
+            if (h && typeof h === "string" && node.props.height.includes("%")) {
+                let hp = parseFloat(node.props.height) / 100
+                node.frame.height = parent.frame.height * hp
+            }
+            let x = node.props.x
+            if (x && typeof x === "string" && x.includes("%")) {
+                let xp = parseFloat(node.props.x) / 100
+                let xPos = parent.frame.width * xp
+                node.frame.x = xPos
+            }
+            let y = node.props.y
+            if (y && typeof y === "string" && y.includes("%")) {
+                let yp = parseFloat(node.props.y) / 100
+                let yPos = parent.frame.height * yp
+                node.frame.y = yPos
+            }
+
+            // translate x and y with parent values
+            node.frame.x = node.frame.x + parent.frame.x
+            node.frame.y = node.frame.y + parent.frame.y
+        }
+
+        for (let child of node.children) {
+            this.resolveCalculatedFrames(child, node)
+        }
+    }
+
+    public resolveIntrinsicFrames(node: Node, parent: Node | null): void {
+        for (let child of node.children) {
+            this.resolveIntrinsicFrames(child, node)
+        }
+
+        let frame = mkRect(0, 0, 0, 0)
+
+        if (node.props.x) {
+            frame.x = parseFloat(node.props.x)
+        }
+
+        if (node.props.y) {
+            frame.y = parseFloat(node.props.y)
+        }
+
+        frame.width = this.resolveWidth(node)
+        frame.height = this.resolveHeight(node)
+
+        node.frame = frame
+    }
+
+    public resolveWidth(node: Node): number {
+        let w = 0
+        if (node.frame && node.frame.width) {
+            w = node.frame.width
+        } else if (node.props.width) {
+            w = parseFloat(node.props.width)
+        } else if (node.props._intrinsicWidth) {
+            w = parseFloat(node.props._intrinsicWidth)
+        } else {
+            for (let child of node.children) {
+                w = Math.max(w, this.resolveWidth(child))
+            }
+        }
+        return w
+    }
+
+    public resolveHeight(node: Node): number {
+        let h = 0
+        if (node.frame && node.frame.height) {
+            h = node.frame.height
+        } else if (node.props.height) {
+            h = parseFloat(node.props.height)
+        } else if (node.props._intrinsicHeight) {
+            h = parseFloat(node.props._intrinsicHeight)
+        } else {
+            for (let child of node.children) {
+                h = Math.max(h, this.resolveHeight(child))
+            }
+        }
+        return h
+    }
+
+    public debugFrames(node: Node, depth: number = 0) {
+        let indent = "".padEnd(depth * 4, " ")
+        if (node.frame) {
+            console.log(
+                indent,
+                node.name,
+                "x:",
+                node.frame.x,
+                ", y:",
+                node.frame.y,
+                "- w:",
+                node.frame.width,
+                ", h:",
+                node.frame.height
+            )
+        } else {
+            console.log(indent, node.name, "no-frame", node)
+        }
+
+        for (let child of node.children) {
+            this.debugFrames(child, depth + 1)
+        }
+    }
+
+    public requestRootUpdate(): void {
         this.hasUpdateBeenRequested = true
     }
 
     public startRootUpdate() {
         this.hasUpdateBeenRequested = false
-        //console.log("startRootUpdate")
         if (this.currentRoot) {
+            this._nodeFrame = mkRect(0, 0, this.size.width, this.size.height)
             this._root = {
                 name: "root",
                 type: this.currentRoot.type,
-                props: this.currentRoot.props,
+                props: {
+                    ...this.currentRoot.props,
+                    width: this.size.width,
+                    height: this.size.height
+                },
                 children: this.currentRoot.children,
                 alternate: minifyNode(this.currentRoot),
                 hooks: this.currentRoot.hooks,
                 needsDraw: false,
-                cache: null
+                cache: null,
+                frame: null
             }
         }
         if (this._root) {
@@ -218,10 +357,12 @@ export class StateManager {
         }
     }
 
-    workEffectHooks(node: Node) {
+    workEffectHooks(node: Node, includeChildren: boolean = true) {
         // children
-        for (let child of node.children) {
-            this.workEffectHooks(child)
+        if (includeChildren) {
+            for (let child of node.children) {
+                this.workEffectHooks(child)
+            }
         }
 
         for (let hook of node.hooks) {
@@ -239,59 +380,66 @@ export class StateManager {
         }
     }
 
-    workUmountHooks(node: Node) {
+    workLayoutHooks(node: Node) {
         // children
         for (let child of node.children) {
-            this.workEffectHooks(child)
+            this.workLayoutHooks(child)
         }
 
+        this._node = node
         for (let hook of node.hooks) {
-            for (let action of hook.pendingUnmount) {
+            for (let action of hook.pendingLayout) {
                 action()
             }
-            hook.pendingUnmount = []
+            hook.pendingLayout = []
         }
+        this._node = null
     }
 
     public updateNode(node: Node): Node[] {
         if (!node.alternate) {
+            // new nodes need to be drawn
             node.needsDraw = true
         }
+
         let prevChildren: Node[] = []
         if (node.type instanceof Function) {
+            // reset hooks, they will be re-added by running the render function
             this.hookIndex = 0
             node.hooks = []
-            prevChildren = node.children
-            let f = node.type as (props: AttributeCollection) => Node
 
-            node.children = [f(node.props)]
+            // get the previous children
+            if (node.alternate) {
+                prevChildren = node.alternate.children
+            } else if (node.children) {
+                prevChildren = node.children
+            }
+
+            // get the render function
+            let f = node.type as (
+                props: AttributeCollection,
+                children: any
+            ) => Node
+
+            // execute the render function, and get new children
+            node.children = [f(node.props, node.children)]
         } else {
+            // for non-function nodes, just use the children
             prevChildren = node.alternate ? node.alternate.children : []
         }
 
-        //// Optimization for groups
-        // if (node.name === "group") {
-        // 	let nextChildren: Node[] = flattenChildren(node.children)
-        // 	if (node.needsDraw === true) {
-        // 		let childDiff = this.diffChildren(nextChildren, prevChildren)
-        // 		node.children = childDiff.children
-        // 	} else {
-        // 		node.children = nextChildren.map(c => {
-        // 			c.needsDraw = false
-        // 			return c
-        // 		})
-        // 	}
-        // } else {
-        // 	let nextChildren: Node[] = flattenChildren(node.children)
-        // 	let childDiff = this.diffChildren(nextChildren, prevChildren)
-        // 	node.children = childDiff.children
-        // }
+        // flatten the children
         let nextChildren: Node[] = flattenChildren(node.children)
+
+        // diff the children
         let childDiff = this.diffChildren(nextChildren, prevChildren)
+
+        // handle diffed children
         node.children = childDiff.children
 
         // TODO: handle removed children
 
+        // return the next children, for next units of work
         return node.children
     }
 
@@ -345,8 +493,8 @@ export class StateManager {
     public diffNode(a: Node | null, b: Node | null): Node | null {
         let next: Node | null = null
         let sameType = false
-        if (a && b) {
-            sameType = a.type === b.type
+        if (!!a && !!b) {
+            sameType = a.type == b.type
         }
 
         if (a && b && sameType) {
@@ -362,7 +510,8 @@ export class StateManager {
                 needsDraw: needsDraw,
                 hooks: b.hooks,
                 cache: b.cache,
-                alternate: minifyNode(b)
+                alternate: minifyNode(b),
+                frame: b.frame
             }
         } else if (a && !sameType) {
             next = {
@@ -373,10 +522,11 @@ export class StateManager {
                 alternate: null,
                 needsDraw: true,
                 hooks: [],
-                cache: null
+                cache: null,
+                frame: a.frame
             }
         } else {
-            //console.error("diffNode", a, b, sameType)
+            console.error("diffNode", a, b, sameType)
         }
 
         return next

@@ -2,11 +2,24 @@ export { PinkKoala } from "./PinkKoala"
 export type {
     AttributeCollection,
     Size,
-    Path,
+    Points,
     EffectHookCallback,
     TickHookCallback,
     Rect
 } from "./models"
+
+export {
+    Layer,
+    Rectangle,
+    Text,
+    Row,
+    Column,
+    Circle,
+    Polygon,
+    Path,
+    Group
+} from "./components"
+
 export {
     createElement,
     Fragment,
@@ -18,6 +31,7 @@ export {
     haveArgsChanged,
     invokeOrReturn,
     useEffect,
+    useLayoutEffect,
     useEventListener,
     useReducer,
     useState,
@@ -45,6 +59,7 @@ declare global {
     namespace JSX {
         interface IntrinsicElements {
             [name: string]: any
+            pkrect: any
         }
         interface IntrinsicAttributes {
             [name: string]: any

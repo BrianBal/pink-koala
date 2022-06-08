@@ -2,56 +2,50 @@ import { PaintJob } from "./PaintJob"
 import { Node } from "../../models"
 
 export class CircleJob extends PaintJob {
-	constructor(node: Node) {
-		super(node)
-		this.name = "CircleJob"
-	}
+    constructor(node: Node) {
+        super(node)
+        this.name = "CircleJob"
+    }
 
-	public paint() {
-		// parse attributes
-		let x = parseFloat(this.node.props.x as string) || 0
-		let y = parseFloat(this.node.props.y as string) || 0
-		let radius = 50
-		if (this.node.props.radius) {
-			radius = parseFloat(this.node.props.radius as string) || 50
-		} else {
-			radius = parseFloat(this.node.props.width as string) || 50
-			radius = radius / 2
-		}
+    public paint() {
+        let frm = this.node.frame!
 
-		// get context
-		if (this.canvas) {
-			let ctx = this.canvas.getContext("2d")!
-			let cu = this.updateRenderingContextFromProps(ctx, this.node.props)
-			if (cu.hasChanged) {
-				ctx.save()
-			}
+        // parse attributes
+        let radius = frm.width / 2
 
-			// path
-			ctx.beginPath()
-			ctx.ellipse(
-				x + radius,
-				y + radius,
-				radius,
-				radius,
-				0,
-				0,
-				2 * Math.PI
-			)
+        // get context
+        if (this.canvas) {
+            let ctx = this.canvas.getContext("2d")!
+            let cu = this.updateRenderingContextFromProps(ctx, this.node.props)
+            if (cu.hasChanged) {
+                ctx.save()
+            }
 
-			// fill
-			if (cu.shouldFill) {
-				ctx.fill()
-			}
+            // path
+            ctx.beginPath()
+            ctx.ellipse(
+                frm.x + radius,
+                frm.y + radius,
+                radius,
+                radius,
+                0,
+                0,
+                2 * Math.PI
+            )
 
-			// stroke
-			if (cu.shouldStroke) {
-				ctx.stroke()
-			}
+            // fill
+            if (cu.shouldFill) {
+                ctx.fill()
+            }
 
-			if (cu.hasChanged) {
-				ctx.restore()
-			}
-		}
-	}
+            // stroke
+            if (cu.shouldStroke) {
+                ctx.stroke()
+            }
+
+            if (cu.hasChanged) {
+                ctx.restore()
+            }
+        }
+    }
 }

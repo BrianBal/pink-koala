@@ -6,5 +6,6 @@ export declare type Hook = {
     pendingEffects: EffectHookCallback[];
     pendingTicks: EffectHookCallback[];
     pendingUnmount: EffectHookCallback[];
+    pendingLayout: EffectHookCallback[];
 };
 export declare function createHook(): Hook;

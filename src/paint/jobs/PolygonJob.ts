@@ -1,70 +1,67 @@
 import { PaintJob } from "./PaintJob"
-import { Node , Path, mkPoint, pointAt } from "../../models"
+import { Node, Points, mkPoint, pointAt } from "../../models"
 
 export class PolygonJob extends PaintJob {
-	constructor(node: Node) {
-		super(node)
-		this.name = "PolygonJob"
-	}
+    constructor(node: Node) {
+        super(node)
+        this.name = "PolygonJob"
+    }
 
-	public paint() {
-		// parse attributes
-		let x = parseFloat(this.node.props.x as string) || 0
-		let y = parseFloat(this.node.props.y as string) || 0
-		let sides = parseFloat(this.node.props.sides as string) || 5
-		let radius = 50
-		if (this.node.props.radius) {
-			radius = parseFloat(this.node.props.radius as string) || 25
-		} else {
-			radius = parseFloat(this.node.props.width as string) || 50
-			radius = radius / 2
-		}
+    public paint() {
+        let frm = this.node.frame!
 
-		let center = mkPoint(x + radius, y + radius)
-		let angle = (Math.PI * 2) / sides
+        // parse attributes
+        let radius = frm.width / 2
+        let sides = parseFloat(this.node.props.sides as string) || 5
 
-		let path: Path = []
-		for (let i = 0; i < sides; i++) {
-			let pt = pointAt(center, angle * i, radius)
-			path.push(pt)
-		}
+        let center = mkPoint(frm.x + radius, frm.y + radius)
+        let angle = (Math.PI * 2) / sides
 
-		// get context
-		if (this.canvas) {
-			let ctx = this.canvas.getContext("2d")!
-			let cu = this.updateRenderingContextFromProps(ctx, this.node.props)
-			if (cu.hasChanged) {
-				ctx.save()
-			}
+        let path: Points = []
+        for (let i = 0; i < sides; i++) {
+            let pt = pointAt(center, angle * i, radius)
+            path.push(pt)
+        }
 
-			// path
-			ctx.beginPath()
-			let i = 0
-			for (let pt of path) {
-				if (i === 0) {
-					ctx.moveTo(pt.x, pt.y)
-				} else {
-					ctx.lineTo(pt.x, pt.y)
-				}
-				if (i === path.length - 1) {
-					ctx.closePath()
-				}
-				i++
-			}
+        // get context
+        if (this.canvas) {
+            let ctx = this.canvas.getContext("2d")!
+            let cu = this.updateRenderingContextFromProps(ctx, this.node.props)
 
-			// fill
-			if (cu.shouldFill) {
-				ctx.fill()
-			}
+            // save context
+            if (cu.hasChanged) {
+                ctx.save()
+            }
 
-			// stroke
-			if (cu.shouldStroke) {
-				ctx.stroke()
-			}
+            // build path
+            ctx.beginPath()
+            let i = 0
+            for (let pt of path) {
+                if (i === 0) {
+                    ctx.moveTo(pt.x, pt.y)
+                } else {
+                    ctx.lineTo(pt.x, pt.y)
+                }
+                if (i === path.length - 1) {
+                    ctx.closePath()
+                }
+                i++
+            }
 
-			if (cu.hasChanged) {
-				ctx.restore()
-			}
-		}
-	}
+            // fill
+            if (cu.shouldFill) {
+                ctx.fill()
+            }
+
+            // stroke
+            if (cu.shouldStroke) {
+                ctx.stroke()
+            }
+
+            // restore
+            if (cu.hasChanged) {
+                ctx.restore()
+            }
+        }
+    }
 }

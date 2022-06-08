@@ -1,53 +1,60 @@
 import { PaintJob } from "./PaintJob"
-import { Node, Path } from "../../models"
+import { Node, Points } from "../../models"
 
 export class PathJob extends PaintJob {
-	constructor(node: Node) {
-		super(node)
-		this.name = "PathJob"
-	}
+    constructor(node: Node) {
+        super(node)
+        this.name = "PathJob"
+    }
 
-	public paint() {
-		// parse attributes
-		let closePath = this.node.props.closed ?? false
-		let path: Path = (this.node.props.path as Path) || []
+    public paint() {
+        let frm = this.node.frame!
 
-		// get context
-		if (this.canvas) {
-			let ctx = this.canvas.getContext("2d")!
-			let cu = this.updateRenderingContextFromProps(ctx, this.node.props)
-			if (cu.hasChanged) {
-				ctx.save()
-			}
+        // parse attributes
+        let closePath = this.node.props.closed ? this.node.props.closed : false
+        let path: Points = (this.node.props.path as Points) || []
 
-			// path
-			ctx.beginPath()
-			let i = 0
-			for (let pt of path) {
-				if (i === 0) {
-					ctx.moveTo(pt.x, pt.y)
-				} else {
-					ctx.lineTo(pt.x, pt.y)
-				}
-				i++
-			}
-			if (closePath) {
-				ctx.closePath()
-			}
+        // get context
+        if (this.canvas) {
+            let ctx = this.canvas.getContext("2d")!
+            let cu = this.updateRenderingContextFromProps(ctx, this.node.props)
 
-			// fill
-			if (cu.shouldFill) {
-				ctx.fill()
-			}
+            // save context
+            if (cu.hasChanged) {
+                ctx.save()
+            }
 
-			// stroke
-			if (cu.shouldStroke) {
-				ctx.stroke()
-			}
+            // path
+            ctx.beginPath()
+            let i = 0
+            for (let pt of path) {
+                if (i === 0) {
+                    ctx.moveTo(frm.x + pt.x, frm.y + pt.y)
+                } else {
+                    ctx.lineTo(frm.x + pt.x, frm.y + pt.y)
+                }
+                i++
+            }
 
-			if (cu.hasChanged) {
-				ctx.restore()
-			}
-		}
-	}
+            // close path
+            if (closePath) {
+                ctx.closePath()
+            }
+
+            // fill
+            if (cu.shouldFill) {
+                ctx.fill()
+            }
+
+            // stroke
+            if (cu.shouldStroke) {
+                ctx.stroke()
+            }
+
+            // restore context
+            if (cu.hasChanged) {
+                ctx.restore()
+            }
+        }
+    }
 }
