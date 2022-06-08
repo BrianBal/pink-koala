@@ -2,8 +2,6 @@
 
 ## Working on how to position stuff without lots of work from consumer
 
--   update tests
--   row and column should probably share layout logic
 -   update mouse and touch handling to bubble events from bottom up, with auto hit test
 -   update alignItems stretch mode for Row and Column
 -   create react like cloneElement
