@@ -2,7 +2,6 @@
 
 ## Working on how to position stuff without lots of work from consumer
 
--   add row flex or span support
 -   update tests
 -   row and column should probably share layout logic
 -   update mouse and touch handling to bubble events from bottom up, with auto hit test
@@ -13,6 +12,7 @@
 
 # Completed
 
+-   add row flex or span support
 -   add functional component group
 -   add functional component path
 -   add functional component polygon

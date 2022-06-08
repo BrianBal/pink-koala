@@ -1846,16 +1846,46 @@ function Row(props, children) {
       var childPadding = 0;
       var childWidth = 0;
       var childHeight = 0;
+      var flexCount = 0;
+      var flexibileWidth = width ? width : 0;
 
       for (var _iterator = _createForOfIteratorHelperLoose(refChildren), _step; !(_step = _iterator()).done;) {
         var child = _step.value;
-        console.log("Row.useLayoutEffect start", child.name, child.frame);
 
-        if (child.frame) {
-          childWidth += child.frame.width;
-          childHeight = Math.max(childHeight, child.frame.height);
+        if (child.props.flex) {
+          try {
+            var flexNum = parseInt(child.props.flex, 10);
+            flexCount += flexNum;
+          } catch (e) {
+            console.warn(e);
+          }
+        } else if (child.frame) {
+          flexibileWidth -= child.frame.width;
+        }
+      }
+
+      for (var _iterator2 = _createForOfIteratorHelperLoose(refChildren), _step2; !(_step2 = _iterator2()).done;) {
+        var _child = _step2.value;
+        console.log("Row.useLayoutEffect start", _child.name, _child.frame);
+
+        if (_child.frame && _child.props.flex && width) {
+          try {
+            var _flexNum = parseInt(_child.props.flex, 10);
+
+            var flexRatio = _flexNum / flexCount;
+            _child.frame.width = flexRatio * flexibileWidth;
+            console.log("Row: flex width", _child.name, _child.frame.width, flexRatio);
+            childWidth += _child.frame.width;
+          } catch (e) {
+            console.warn(e);
+          }
+        }
+
+        if (_child.frame) {
+          childWidth += _child.frame.width;
+          childHeight = Math.max(childHeight, _child.frame.height);
         } else {
-          console.error("Row: child has no frame", child);
+          console.warn("Row: child has no frame", _child);
         }
       }
 
@@ -1900,16 +1930,16 @@ function Row(props, children) {
           break;
       }
 
-      for (var _iterator2 = _createForOfIteratorHelperLoose(refChildren), _step2; !(_step2 = _iterator2()).done;) {
-        var _child = _step2.value;
+      for (var _iterator3 = _createForOfIteratorHelperLoose(refChildren), _step3; !(_step3 = _iterator3()).done;) {
+        var _child2 = _step3.value;
 
-        if (!_child.frame) {
-          _child.frame = mkRect(0, 0, 0, 0);
-          console.error("Row: child has no frame", _child);
+        if (!_child2.frame) {
+          _child2.frame = mkRect(0, 0, 0, 0);
+          console.error("Row: child has no frame", _child2);
         }
 
         var cy = y;
-        var ch = _child.frame.height;
+        var ch = _child2.frame.height;
 
         switch (alignItems) {
           case "flex-start":
@@ -1918,12 +1948,12 @@ function Row(props, children) {
 
           case "flex-end":
           case "end":
-            cy = y + height - _child.frame.height;
+            cy = y + height - _child2.frame.height;
             break;
 
           case "center":
           case "baseline":
-            cy = y + (height - _child.frame.height) / 2;
+            cy = y + (height - _child2.frame.height) / 2;
             break;
 
           case "stretch":
@@ -1931,10 +1961,10 @@ function Row(props, children) {
             break;
         }
 
-        translateFrame(_child, x, cy);
-        _child.frame.height = ch;
-        console.log("Row.useLayoutEffect end", _child.name, _child.frame);
-        x += _child.frame.width;
+        translateFrame(_child2, x, cy);
+        _child2.frame.height = ch;
+        console.log("Row.useLayoutEffect end", _child2.name, _child2.frame);
+        x += _child2.frame.width;
         x += childPadding;
       }
     }

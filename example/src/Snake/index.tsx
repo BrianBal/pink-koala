@@ -8,9 +8,7 @@ import {
     Rectangle,
     Polygon,
     Layer,
-    Column,
-    Path,
-    Group
+    Row
 } from "pink-koala"
 ///import { Welcome } from "./Welcome"
 
@@ -23,57 +21,36 @@ export function Snake() {
     return (
         <>
             <Layer id="main">
-                <Column height="100%" width="50%">
-                    <Path
-                        path={[
-                            { x: 0, y: 0 },
-                            { x: 100, y: 0 },
-                            { x: 100, y: 100 },
-                            { x: 0, y: 100 },
-                            { x: 0, y: 0 }
-                        ]}
-                        width="100"
-                        height="100"
-                        fill="pink"
-                        stroke="#000"
+                <Row height="200px" width="100%">
+                    <Rectangle
+                        id="Rect0"
+                        sides="8"
+                        height="100%"
+                        fill="#333"
+                        flex="3"
                     />
-                    <Group flex="3" height="50%" width="50%">
-                        <Rectangle
-                            id="Rect0"
-                            sides="8"
-                            height="100%"
-                            width="100%"
-                            fill="#333"
-                        >
-                            <Polygon
-                                id="rect1"
-                                x="25%"
-                                y="25%"
-                                width="50%"
-                                height="50%"
-                                sides="3"
-                                fill="#ac0000"
-                            />
-                            <Polygon
-                                id="rect2"
-                                x="25"
-                                y="25"
-                                width="50"
-                                height="50"
-                                sides="5"
-                                fill="#00ac00"
-                            />
-                        </Rectangle>
-                    </Group>
+                    <Polygon
+                        id="rect1"
+                        flex="2"
+                        height="50%"
+                        sides="3"
+                        fill="#ac0000"
+                    />
+                    <Polygon
+                        id="rect2"
+                        flex="2"
+                        height="50"
+                        sides="5"
+                        fill="#00ac00"
+                    />
                     <Polygon
                         flex="1"
                         id="rect1"
-                        width="50%"
                         height="50%"
-                        sides="4"
+                        sides="8"
                         fill="#0000ac"
                     />
-                </Column>
+                </Row>
                 {/* <Column width="100%" height="100%">
                     <Row
                         width="100%"

@@ -32,30 +32,69 @@ export function Row(props: any, children: any) {
             let childPadding = 0
             let childWidth = 0
             let childHeight = 0
+            let flexCount = 0
+            let flexibileWidth = width ? width : 0
+
+            // find flex count of children
+            for (let child of refChildren) {
+                if (child.props.flex) {
+                    try {
+                        let flexNum = parseInt(child.props.flex, 10)
+                        flexCount += flexNum
+                    } catch (e) {
+                        console.warn(e)
+                    }
+                } else if (child.frame) {
+                    flexibileWidth -= child.frame.width
+                }
+            }
+
+            // update child frames and calculate row width and height
             for (let child of refChildren) {
                 console.log(
                     "Row.useLayoutEffect start",
                     child.name,
                     child.frame
                 )
+                if (child.frame && child.props.flex && width) {
+                    try {
+                        let flexNum = parseInt(child.props.flex, 10)
+                        let flexRatio = flexNum / flexCount
+                        child.frame.width = flexRatio * flexibileWidth
+                        console.log(
+                            "Row: flex width",
+                            child.name,
+                            child.frame.width,
+                            flexRatio
+                        )
+                        childWidth += child.frame.width
+                    } catch (e) {
+                        console.warn(e)
+                    }
+                }
                 if (child.frame) {
                     childWidth += child.frame.width
                     childHeight = Math.max(childHeight, child.frame.height)
                 } else {
-                    console.error("Row: child has no frame", child)
+                    console.warn("Row: child has no frame", child)
                 }
             }
+
+            // update the real col element frame width
             if (width === null) {
                 width = childWidth
                 nodeRef.frame!.width = width
             }
             nodeRef.children[0].frame!.width = width
+
+            // update the real col element frame height
             if (height === null) {
                 height = childHeight
                 nodeRef.frame!.height = height
             }
             nodeRef.children[0].frame!.height = height
 
+            // justify content
             switch (justifyContent) {
                 case "flex-start":
                 case "start":
@@ -79,6 +118,7 @@ export function Row(props: any, children: any) {
                     break
             }
 
+            // align items
             for (let child of refChildren) {
                 if (!child.frame) {
                     child.frame = mkRect(0, 0, 0, 0)
