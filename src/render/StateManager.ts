@@ -1,9 +1,19 @@
-import { mkRect, mkSize, Node, Size, Rect } from "../models"
+import {
+    mkRect,
+    mkSize,
+    Node,
+    Size,
+    Rect,
+    rectContains,
+    mkPoint
+} from "../models"
 import type { AttributeCollection } from "../models"
+import { PKEvent } from "../models"
 import { flattenChildren } from "./flattenChildren"
 import { havePropsChanged } from "./havePropsChanged"
 import { minifyNode } from "./minifyNode"
 import { paint } from "../paint"
+import { getSharedSupervisor } from "./Supervisor"
 
 type ChildrenDiff = {
     children: Node[]
@@ -16,6 +26,7 @@ export class StateManager {
     private paintCount = 0
 
     public size: Size = mkSize(10, 10)
+
     private _nodeFrame: Rect = mkRect(0, 0, 10, 10)
 
     public _root: Node | null = null
@@ -106,7 +117,7 @@ export class StateManager {
     }
 
     public step(deadline: IdleDeadline) {
-        let start = performance.now()
+        //let start = performance.now()
 
         // timer based hooks
         if (this.currentRoot) {
@@ -153,7 +164,7 @@ export class StateManager {
             }
         }
 
-        let diff = performance.now() - start
+        //let diff = performance.now() - start
     }
 
     public performNextUnitOfWork() {
@@ -166,8 +177,8 @@ export class StateManager {
         if (this._node) {
             this.workEffectHooks(this._node, false)
             let next: Node[] = this.updateNode(this._node)
-            for (let n of next) {
-                this.unitsOfWork.push(n)
+            for (let nn of next) {
+                this.unitsOfWork.push(nn)
             }
         }
     }
@@ -530,5 +541,33 @@ export class StateManager {
         }
 
         return next
+    }
+
+    public handleEvent(event: Event) {
+        let x = 0
+        let y = 0
+        if (event.type == "click") {
+            let mouseEvent = event as MouseEvent
+            x = mouseEvent.offsetX
+            y = mouseEvent.offsetY
+        }
+        let pkEvent = new PKEvent(event, { x, y })
+
+        if (this.currentRoot) {
+            this.bubbleEvent(this.currentRoot, pkEvent)
+        }
+    }
+
+    public bubbleEvent(node: Node, event: PKEvent) {
+        for (let child of node.children) {
+            this.bubbleEvent(child, event)
+        }
+
+        if (node.frame && rectContains(node.frame, mkPoint(event.x, event.y))) {
+            if (typeof node.props[event.type] == "function") {
+                let handler = node.props[event.type] as (event: PKEvent) => void
+                handler(event)
+            }
+        }
     }
 }

@@ -11,7 +11,18 @@ export class PolygonJob extends PaintJob {
         let frm = this.node.frame!
 
         // parse attributes
-        let radius = frm.width / 2
+        let radius = 10
+        if (frm.width && frm.height) {
+            if (frm.width > frm.height) {
+                radius = frm.height / 2
+            } else {
+                radius = frm.width / 2
+            }
+        } else if (frm.width) {
+            radius = frm.width / 2
+        } else if (frm.height) {
+            radius = frm.height / 2
+        }
         let sides = parseFloat(this.node.props.sides as string) || 5
 
         let center = mkPoint(frm.x + radius, frm.y + radius)

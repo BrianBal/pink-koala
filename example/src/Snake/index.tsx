@@ -10,6 +10,7 @@ import {
     Layer,
     Row
 } from "pink-koala"
+import { PKEvent } from "../../../dist/models"
 ///import { Welcome } from "./Welcome"
 
 /* type SnakeProps = {
@@ -21,13 +22,22 @@ export function Snake() {
     return (
         <>
             <Layer id="main">
-                <Row height="200px" width="100%">
+                <Row
+                    height="200px"
+                    width="100%"
+                    onClick={(event: PKEvent) => {
+                        console.log("Row Clicked", event)
+                    }}
+                >
                     <Rectangle
                         id="Rect0"
                         sides="8"
                         height="100%"
                         fill="#333"
                         flex="3"
+                        onClick={(event: PKEvent) => {
+                            console.log("Rectangle Clicked", event)
+                        }}
                     />
                     <Polygon
                         id="rect1"
@@ -35,6 +45,9 @@ export function Snake() {
                         height="50%"
                         sides="3"
                         fill="#ac0000"
+                        onClick={(event: PKEvent) => {
+                            console.log("Triangle Clicked", event)
+                        }}
                     />
                     <Polygon
                         id="rect2"
@@ -42,6 +55,9 @@ export function Snake() {
                         height="50"
                         sides="5"
                         fill="#00ac00"
+                        onClick={(event: PKEvent) => {
+                            console.log("Pentagon Clicked", event)
+                        }}
                     />
                     <Polygon
                         flex="1"
@@ -49,6 +65,9 @@ export function Snake() {
                         height="50%"
                         sides="8"
                         fill="#0000ac"
+                        onClick={(event: PKEvent) => {
+                            console.log("Octogon Clicked", event)
+                        }}
                     />
                 </Row>
                 {/* <Column width="100%" height="100%">

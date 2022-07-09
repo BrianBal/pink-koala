@@ -30,6 +30,18 @@ export const PinkKoala = (props: PinkKoalaProps) => {
         }
     }, [props.drawing, containerRef, props.size])
 
+    const handleEvent = (event: Event) => {
+        let sup = getSharedSupervisor()
+        sup.stateManager.handleEvent(event)
+    }
+
+    useEffect(() => {
+        containerRef.current!.addEventListener("click", handleEvent)
+        return () => {
+            containerRef.current!.removeEventListener("click", handleEvent)
+        }
+    }, [])
+
     return (
         <div ref={containerRef} className="PinkKoala">
             {props.layers.map((layer) => (

@@ -2,6 +2,7 @@
 /** @jsx createElement */
 /** @jsxFrag Fragment */
 
+import { PKEvent } from "../models"
 import { createElement, Fragment } from "../render/"
 
 type RectangleProps = {
@@ -13,6 +14,7 @@ type RectangleProps = {
     stroke?: string
     strokeWidth?: number
     flex?: number | string
+    onClick?: (event: PKEvent) => void
 }
 
 export const Rectangle = (props: RectangleProps, children: any) => {

@@ -19,3 +19,4 @@ export {
 } from "./Rect"
 export { mkSize } from "./Size"
 export { mkPoint, pointLerp, pointAt } from "./Point"
+export { PKEvent } from "./PKEvent"
