@@ -2,7 +2,10 @@
 
 ## Working on how to position stuff without lots of work from consumer
 
--   update mouse and touch handling to bubble events from bottom up, with auto hit test
+-   useEventHandler hook should work with keyboard events
+-   useEventHandler hook should work with window resize events
+-   useEventHandler hook should work with scroll wheel
+-   add option to prevent default for all native events focused on PK
 -   update alignItems stretch mode for Row and Column
 -   create react like cloneElement
 -   use cloneElement in row component
@@ -10,6 +13,7 @@
 
 # Completed
 
+-   update mouse and touch handling to bubble events from bottom up, with auto hit test
 -   add row flex or span support
 -   add functional component group
 -   add functional component path
