@@ -2,10 +2,15 @@
 
 ## Working on how to position stuff without lots of work from consumer
 
+-   demo page
+-   margin
+-   padding
 -   useEventHandler hook should work with keyboard events
 -   useEventHandler hook should work with window resize events
 -   useEventHandler hook should work with scroll wheel
 -   add option to prevent default for all native events focused on PK
+-   images
+-   video
 -   update alignItems stretch mode for Row and Column
 -   create react like cloneElement
 -   use cloneElement in row component
