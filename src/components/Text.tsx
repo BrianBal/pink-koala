@@ -3,15 +3,9 @@
 /** @jsxFrag Fragment */
 
 import { createElement, Fragment } from "../render/"
+import type { PKProps } from "./PKProps"
 
 type TextProps = {
-    x?: number
-    y?: number
-    width?: number
-    height?: number
-    fill?: string
-    stroke?: string
-    strokeWidth?: number
     font?: string
 }
 type TextAttr = {
@@ -31,8 +25,32 @@ type TextAttr = {
 const fontCanvas = document.createElement("canvas")
 const fontCtx = fontCanvas.getContext("2d")!
 
-export const Text = (props: TextProps, children: any) => {
-    let attr: TextAttr = { ...props, text: "" }
+export const Text = (props: TextProps & PKProps, children: any) => {
+    let attr: TextAttr = { text: "" }
+    if (props.x) {
+        attr.x = props.x as number
+    }
+    if (props.y) {
+        attr.y = props.y as number
+    }
+    if (props.width) {
+        attr.width = props.width as number
+    }
+    if (props.height) {
+        attr.height = props.height as number
+    }
+    if (props.fill) {
+        attr.fill = props.fill as string
+    }
+    if (props.stroke) {
+        attr.stroke = props.stroke as string
+    }
+    if (props.strokeWidth) {
+        attr.strokeWidth = props.strokeWidth as number
+    }
+    if (props.font) {
+        attr.font = props.font as string
+    }
 
     // find intrinsic width and height
     let text = ""

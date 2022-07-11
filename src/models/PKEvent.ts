@@ -22,6 +22,30 @@ export class PKEvent {
             case "click":
                 eventType = "onClick"
                 break
+            case "dblclick":
+                eventType = "onDoubleClick"
+                break
+            case "mousedown":
+                eventType = "onMouseDown"
+                break
+            case "mouseup":
+                eventType = "onMouseUp"
+                break
+            case "mousemove":
+                eventType = "onMouseMove"
+                break
+            case "touchstart":
+                eventType = "onTouchStart"
+                break
+            case "touchend":
+                eventType = "onTouchEnd"
+                break
+            case "touchmove":
+                eventType = "onTouchMove"
+                break
+            case "touchcancel":
+                eventType = "onTouchCancel"
+                break
             default:
                 eventType = "onUnkownEvent"
         }

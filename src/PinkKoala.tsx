@@ -37,8 +37,29 @@ export const PinkKoala = (props: PinkKoalaProps) => {
 
     useEffect(() => {
         containerRef.current!.addEventListener("click", handleEvent)
+        containerRef.current!.addEventListener("dblclick", handleEvent)
+        containerRef.current!.addEventListener("mouseup", handleEvent)
+        containerRef.current!.addEventListener("mousedown", handleEvent)
+        containerRef.current!.addEventListener("mousemove", handleEvent)
+
+        containerRef.current!.addEventListener("touchstart", handleEvent)
+        containerRef.current!.addEventListener("touchend", handleEvent)
+        containerRef.current!.addEventListener("touchmove", handleEvent)
+        containerRef.current!.addEventListener("touchcancel", handleEvent)
         return () => {
             containerRef.current!.removeEventListener("click", handleEvent)
+            containerRef.current!.removeEventListener("dblclick", handleEvent)
+            containerRef.current!.removeEventListener("mouseup", handleEvent)
+            containerRef.current!.removeEventListener("mousedown", handleEvent)
+            containerRef.current!.removeEventListener("mousemove", handleEvent)
+
+            containerRef.current!.removeEventListener("touchstart", handleEvent)
+            containerRef.current!.removeEventListener("touchend", handleEvent)
+            containerRef.current!.removeEventListener("touchmove", handleEvent)
+            containerRef.current!.removeEventListener(
+                "touchcancel",
+                handleEvent
+            )
         }
     }, [])
 

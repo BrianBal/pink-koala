@@ -3,16 +3,11 @@
 /** @jsxFrag Fragment */
 
 import { createElement, Fragment } from "../render"
+import type { PKProps } from "./PKProps"
 
-type GroupProps = {
-    x?: number | string
-    y?: number | string
-    width?: number | string
-    height?: number | string
-    flex?: number | string
-}
+type GroupProps = {}
 
-export const Group = (props: GroupProps, children: any) => {
+export const Group = (props: GroupProps & PKProps, children: any) => {
     //console.log("Path", props, children)
     if (children && children.length > 0) {
         return <Fragment>{children}</Fragment>

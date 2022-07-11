@@ -35,8 +35,17 @@ export function Snake() {
                         height="100%"
                         fill="#333"
                         flex="3"
-                        onClick={(event: PKEvent) => {
-                            console.log("Rectangle Clicked", event)
+                        onTouchStart={(event: PKEvent) => {
+                            console.log("Rectangle Touch Start", event)
+                        }}
+                        onTouchEnd={(event: PKEvent) => {
+                            console.log("Rectangle Touch End", event)
+                        }}
+                        onTouchMove={(event: PKEvent) => {
+                            console.log("Rectangle Touch Move", event)
+                        }}
+                        onTouchCancel={(event: PKEvent) => {
+                            console.log("Rectangle Touch Cancel", event)
                         }}
                     />
                     <Polygon

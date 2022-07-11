@@ -546,10 +546,35 @@ export class StateManager {
     public handleEvent(event: Event) {
         let x = 0
         let y = 0
-        if (event.type == "click") {
-            let mouseEvent = event as MouseEvent
-            x = mouseEvent.offsetX
-            y = mouseEvent.offsetY
+        switch (event.type) {
+            case "click":
+            case "dblclick":
+            case "mousedown":
+            case "mouseup":
+            case "mousemove":
+                let mouseEvent = event as MouseEvent
+                x = mouseEvent.offsetX
+                y = mouseEvent.offsetY
+                break
+            case "touchstart":
+            case "touchmove":
+            case "touchend":
+            case "touchcancel":
+                let sup = getSharedSupervisor()
+                let canvas = sup.canvases[0]
+                let rect = canvas.getBoundingClientRect()
+                let touchEvent = event as TouchEvent
+                if (touchEvent.touches.length > 0) {
+                    x = touchEvent.touches[0].clientX - rect.left
+                    y = touchEvent.touches[0].clientY - rect.top
+                } else if (touchEvent.changedTouches.length > 0) {
+                    x = touchEvent.changedTouches[0].clientX - rect.left
+                    y = touchEvent.changedTouches[0].clientY - rect.top
+                }
+                break
+            default:
+                x = 0
+                y = 0
         }
         let pkEvent = new PKEvent(event, { x, y })
 
